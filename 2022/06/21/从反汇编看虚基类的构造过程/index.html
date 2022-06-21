@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>从反汇编看虚基类的构造过程 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="从反汇编看虚基类的构造过程12345678910111213141516171819class C;class BASE&amp;#123;	public:BASE() &amp;#123;		cout &lt;&lt; &quot;constructor:BASE&quot; &lt;&lt; endl;	&amp;#125;&amp;#125;;class C : public virtual BASE	&#x2F;&#x2F;注意此处的虚继承">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从反汇编看虚基类的构造过程">
+<meta property="og:url" content="http://example.com/2022/06/21/%E4%BB%8E%E5%8F%8D%E6%B1%87%E7%BC%96%E7%9C%8B%E8%99%9A%E5%9F%BA%E7%B1%BB%E7%9A%84%E6%9E%84%E9%80%A0%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="从反汇编看虚基类的构造过程12345678910111213141516171819class C;class BASE&amp;#123;	public:BASE() &amp;#123;		cout &lt;&lt; &quot;constructor:BASE&quot; &lt;&lt; endl;	&amp;#125;&amp;#125;;class C : public virtual BASE	&#x2F;&#x2F;注意此处的虚继承">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-06-21T14:26:44.000Z">
+<meta property="article:modified_time" content="2022-06-21T14:27:39.455Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-从反汇编看虚基类的构造过程" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2022/06/21/%E4%BB%8E%E5%8F%8D%E6%B1%87%E7%BC%96%E7%9C%8B%E8%99%9A%E5%9F%BA%E7%B1%BB%E7%9A%84%E6%9E%84%E9%80%A0%E8%BF%87%E7%A8%8B/" class="article-date">
+  <time class="dt-published" datetime="2022-06-21T14:26:44.000Z" itemprop="datePublished">2022-06-21</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      从反汇编看虚基类的构造过程
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="从反汇编看虚基类的构造过程"><a href="#从反汇编看虚基类的构造过程" class="headerlink" title="从反汇编看虚基类的构造过程"></a>从反汇编看虚基类的构造过程</h1><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">C</span>;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BASE</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">public</span>:<span class="built_in">BASE</span>() &#123;</span><br><span class="line">		cout &lt;&lt; <span class="string">&quot;constructor:BASE&quot;</span> &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">C</span> : <span class="keyword">public</span> <span class="keyword">virtual</span> BASE	<span class="comment">//注意此处的虚继承</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">C</span>() &#123;</span><br><span class="line">		cout &lt;&lt; <span class="string">&quot;constructor:C&quot;</span> &lt;&lt; endl;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">D</span> :<span class="keyword">public</span> C</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line"></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>先说结论:</p>
+<ul>
+<li>以往，在派生类的构造函数中只需负责对其直接基类初始化，再由其直接基类负责对间接基类初始化。</li>
+<li>现在，由于虚基类在派生类中只有一份，所以对<strong>虚基类的成员变量的初始化必须由最后的派生类直接给出</strong>。如果不由最后的派生类直接对虚基类初始化，而由虚基类的直接派生类（如类B和类C）对虚基类初始化，就有可能由于在类B和类C的构造函数中对虚基类给出不同的初始化参数而产生矛盾。所以规定：在<strong>最后的派生类中不仅要负责对其直接基类进行初始化，还要负责对虚基类初始化</strong></li>
+<li>涉及虚继承的对象的构造函数中多传递一个参数,表示是否调用虚基类的构造(0&#x2F;1),防止其被构造多次,保证只执行最后的派生类对虚基类的构造函数的调用，而忽略虚基类的其他派生类（如类B和类C）对虚基类的构造函数的调用</li>
+</ul>
+<p>反汇编</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">;实验环境为 MSVC x86</span><br><span class="line">	D d;   </span><br><span class="line">00782B62 6A 01                push        1  ;表示虚基类未初始化,接下来的构造函数中会转而push 0</span><br><span class="line">00782B64 8D 4D F4             lea         ecx,[d] ;thiscall,将this指针通过ecx寄存器传递 </span><br><span class="line">00782B67 E8 4C F0 FF FF       call        D::D (0781BB8h)</span><br><span class="line"></span><br><span class="line">D::D:</span><br><span class="line">00782E40 55                   push        ebp  ;常规栈帧,只看一遍</span><br><span class="line">00782E41 8B EC                mov         ebp,esp  </span><br><span class="line">00782E43 81 EC CC 00 00 00    sub         esp,0CCh  </span><br><span class="line">00782E49 53                   push        ebx  </span><br><span class="line">00782E4A 56                   push        esi  </span><br><span class="line">00782E4B 57                   push        edi  </span><br><span class="line">00782E4C 51                   push        ecx  </span><br><span class="line">00782E4D 8D BD 34 FF FF FF    lea         edi,[ebp-0CCh]  </span><br><span class="line">00782E53 B9 33 00 00 00       mov         ecx,33h  </span><br><span class="line">00782E58 B8 CC CC CC CC       mov         eax,0CCCCCCCCh  </span><br><span class="line">00782E5D F3 AB                rep stos    dword ptr es:[edi]  </span><br><span class="line">00782E5F 59                   pop         ecx  </span><br><span class="line">00782E60 89 4D F8             mov         dword ptr [this],ecx  </span><br><span class="line">00782E63 83 7D 08 00          cmp         dword ptr [ebp+8],0  </span><br><span class="line">00782E67 74 14                je          D::D+3Dh (0782E7Dh) </span><br><span class="line">;关键点:判断参数1,也就是刚刚push的1,若等于0(虚基类已被构造),则跳过下面的虚表和虚基类的构造过程</span><br><span class="line">;这也是为什么虚基类(包括其虚表指针)只会出现一次的原因</span><br><span class="line">00782E69 8B 45 F8             mov         eax,dword ptr [this]  </span><br><span class="line">00782E6C C7 00 5C CB 79 00    mov         dword ptr [eax],offset D::`vbtable&#x27; (079CB5Ch)  </span><br><span class="line">00782E72 8B 4D F8             mov         ecx,dword ptr [this]  </span><br><span class="line">00782E75 83 C1 04             add         ecx,4  </span><br><span class="line">00782E78 E8 40 ED FF FF       call        BASE::BASE (0781BBDh)  </span><br><span class="line">;进入虚基类初始化过程,此处略</span><br><span class="line">00782E7D 6A 00                push        0  ;表示虚基类已被构造</span><br><span class="line">00782E7F 8B 4D F8             mov         ecx,dword ptr [this]  </span><br><span class="line">00782E82 E8 2C ED FF FF       call        C::C (0781BB3h)  </span><br><span class="line">;简要展示虚基类的直接基类C的初始化相关部分</span><br><span class="line">	;007971AD 83 7D 08 00          cmp         dword ptr [ebp+8],0  </span><br><span class="line">	;007971B1 74 14                je          C::C+47h (07971C7h)  ;将跳过虚基类初始化部分</span><br><span class="line">	;007971B3 8B 45 F8             mov         eax,dword ptr [this]  </span><br><span class="line">	;007971B6 C7 00 44 CB 79 00    mov         dword ptr [eax],offset C::`vbtable&#x27; (079CB44h)  </span><br><span class="line">	;007971BC 8B 4D F8             mov         ecx,dword ptr [this]  </span><br><span class="line">	;007971BF 83 C1 04             add         ecx,4  </span><br><span class="line">	;007971C2 E8 F6 A9 FE FF       call        BASE::BASE (0781BBDh)  </span><br><span class="line">	;		cout &lt;&lt; &quot;constructor:C&quot; &lt;&lt; endl;</span><br><span class="line">	;007971C7 68 4C CB 79 00       push        offset string &quot;constructor:C&quot; (079CB4Ch)  </span><br><span class="line">	;下略</span><br><span class="line">;end</span><br><span class="line">00782E87 8B 45 F8             mov         eax,dword ptr [this]  </span><br><span class="line">00782E8A 5F                   pop         edi  </span><br><span class="line">00782E8B 5E                   pop         esi  </span><br><span class="line">00782E8C 5B                   pop         ebx  </span><br><span class="line">00782E8D 81 C4 CC 00 00 00    add         esp,0CCh  </span><br><span class="line">00782E93 3B EC                cmp         ebp,esp  </span><br><span class="line">00782E95 E8 23 E8 FF FF       call        __RTC_CheckEsp (07816BDh)  </span><br><span class="line">00782E9A 8B E5                mov         esp,ebp  </span><br><span class="line">00782E9C 5D                   pop         ebp  </span><br><span class="line">00782E9D C2 04 00             ret         4  ;thiscall被调用者回收堆栈</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/06/21/%E4%BB%8E%E5%8F%8D%E6%B1%87%E7%BC%96%E7%9C%8B%E8%99%9A%E5%9F%BA%E7%B1%BB%E7%9A%84%E6%9E%84%E9%80%A0%E8%BF%87%E7%A8%8B/" data-id="cl4ob0pk50000ygf9h41tegzm" data-title="从反汇编看虚基类的构造过程" class="article-share-link">Share</a>
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/06/21/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/06/21/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/21/%E4%BB%8E%E5%8F%8D%E6%B1%87%E7%BC%96%E7%9C%8B%E8%99%9A%E5%9F%BA%E7%B1%BB%E7%9A%84%E6%9E%84%E9%80%A0%E8%BF%87%E7%A8%8B/">从反汇编看虚基类的构造过程</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2022 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
